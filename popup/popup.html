@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emerald</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="brand">
+      <span class="brand-name">emerald</span>
+      <span class="brand-tag">web ai</span>
+    </div>
+    <div class="header-actions">
+      <button id="copy-body-btn" class="icon-btn" title="Copy Body Text (Debug)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+          <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+        </svg>
+      </button>
+      <button id="toggle-settings-btn" class="icon-btn" title="Settings" style="display:none">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path
+            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+          </path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Hotkey Tip Bar (Clickable) -->
+  <div class="shortcut-tip-bar" id="open-hud-btn" style="cursor:pointer;" title="Press Alt+3 to analyze & fill form directly">
+    <span>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><path d="M7 2v11h3v9l7-12h-4l4-11z"/></svg>
+      <b>Alt+3</b> Fill
+    </span>
+    <span>&bull;</span>
+    <span><b>Alt+1</b> Panel</span>
+    <span>&bull;</span>
+    <span>
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+      <b>Alt+2</b> Logic
+    </span>
+    <span>&bull;</span>
+    <span id="popup-open-models-btn" title="Press Alt+0 for Model Dashboard" style="cursor:pointer;">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      <b>Alt+0</b> Models
+    </span>
+  </div>
+
+  <!-- Live Gemini Token Meter Strip -->
+  <div class="token-meter-strip" id="popup-token-strip" style="cursor:pointer;" title="Click or press Alt+0 for Model Dashboard">
+    <span class="token-badge">
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><path d="M7 2v11h3v9l7-12h-4l4-11z"/></svg>
+      MODELS
+    </span>
+    <span id="popup-token-display" class="token-counter">0 used &bull; 1.05M ctx left</span>
+  </div>
+
+  <!-- Settings Drawer -->
+  <div id="settings-drawer">
+    <div class="form-group">
+      <label class="form-label" for="api-key-input">Gemini API Keys (Multi-Key Failover)</label>
+      <textarea id="api-key-input" class="form-input" rows="3" style="height:62px;resize:vertical;font-family:var(--font-mono);font-size:11px;" placeholder="AIzaSy... (Key 1)&#10;AIzaSy... (Key 2 backup)"></textarea>
+      <div style="font-size:10px;color:var(--apple-label-secondary);margin-top:3px;margin-bottom:6px;">
+        Enter one or more keys (one per line). If a key hits rate limit (429), Emerald rotates to the next key automatically.
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="checkbox-row" style="margin-bottom:6px">
+        <input type="checkbox" id="mock-ai-toggle" />
+        <span>Use Mock AI Engine (Offline Testing)</span>
+      </label>
+      <label class="checkbox-row" style="margin-bottom:0">
+        <input type="checkbox" id="popup-disable-popup-toggle" />
+        <span>Disable Popup (Silent Mode - No Toast)</span>
+      </label>
+    </div>
+    <button id="save-settings-btn" class="btn-primary" style="margin-top:8px">Save Settings</button>
+  </div>
+
+  <!-- Main Container -->
+  <main class="container">
+
+    <!-- User Instruction Input & Textarea Prompt Injection -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <div class="section-title" style="margin-bottom:0;">Prompt Injection</div>
+      <span class="neo-badge-tag" title="Press Enter inside textarea to immediately execute">↵ ENTER TO RUN</span>
+    </div>
+    <div class="injection-wrap">
+      <textarea id="user-request" class="instruction-box"
+        placeholder="Type custom prompt / instruction to inject (e.g. Strictly select 2 options for checkboxes, Indonesian Grade 12 MIPA, calculate redox E°katoda - E°anoda)..."></textarea>
+      <div class="prompt-chips-bar">
+        <button type="button" class="prompt-chip" data-prompt="Strictly select 2 options for every multi-choice checkbox question. Never select only 1 option.">⚡ 2 Options</button>
+        <button type="button" class="prompt-chip" data-prompt="Calculate exact redox potentials E°sel = E°katoda - E°anoda. Spontaneous if E° > 0.">🧪 Redox</button>
+        <button type="button" class="prompt-chip" data-prompt="Fill Name: Andi Pratama, Class: XII MIPA 1, NISN: 1234567890.">📝 Student ID</button>
+        <button type="button" class="prompt-chip" data-prompt="Fill all text fields and short answers completely. Do not leave any blank.">🎯 Full Fill</button>
+      </div>
+    </div>
+
+    <!-- Operating Mode Selector -->
+    <div class="section-title">Operating Mode</div>
+    <div class="mode-group">
+      <label class="mode-card active" id="card-suggest">
+        <input type="radio" name="mode" value="SUGGEST" checked />
+        <span class="mode-title">Suggest</span>
+        <span class="mode-desc">Analyze and suggest answers. No page edits.</span>
+      </label>
+
+      <label class="mode-card" id="card-fill">
+        <input type="radio" name="mode" value="FILL" />
+        <span class="mode-title">Fill</span>
+        <span class="mode-desc">Auto-fill fields. No form submissions.</span>
+      </label>
+
+      <label class="mode-card" id="card-assist">
+        <input type="radio" name="mode" value="ASSIST" />
+        <span class="mode-title">Assist</span>
+        <span class="mode-desc">Fill & navigate page controls.</span>
+      </label>
+    </div>
+
+    <!-- Safety Option -->
+    <label class="checkbox-row">
+      <input type="checkbox" id="ask-important" checked />
+      <span>Ask before important actions</span>
+    </label>
+
+    <!-- Primary Action Button -->
+    <button id="run-btn" class="btn-primary">Analyze & Execute</button>
+
+    <!-- Confirmation Modal Drawer -->
+    <div id="confirmation-drawer" class="confirmation-box">
+      <div class="confirmation-title">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+        Action Confirmation Required
+      </div>
+      <div id="confirmation-text" class="confirmation-desc">The AI is ready to execute a consequential action on this
+        page.</div>
+      <div class="confirm-actions">
+        <button id="confirm-cancel-btn" class="btn-small btn-cancel">Cancel</button>
+        <button id="confirm-allow-btn" class="btn-small btn-allow">Allow Action</button>
+      </div>
+    </div>
+
+    <!-- Status & Execution Feed -->
+    <div class="status-panel">
+      <div class="status-chip">
+        <span id="status-dot" class="status-indicator"></span>
+        <span id="status-text">Ready</span>
+      </div>
+      <div id="history-feed" class="history-list"></div>
+      <div class="debug-row">
+        <button id="debug-copy-text-btn" class="btn-secondary">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+          Page Text
+        </button>
+        <button id="debug-copy-json-btn" class="btn-secondary">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+          Scan JSON
+        </button>
+        <button id="debug-copy-trace-btn" class="btn-secondary">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><path d="M20 8h-2.81c-.45-.78-1.07-1.45-1.82-1.96L17 4.41 15.59 3l-2.17 2.17C13 5.06 12.51 5 12 5s-1 .06-1.41.17L8.41 3 7 4.41l1.62 1.63C7.88 6.55 7.26 7.22 6.81 8H4v2h2.09c-.05.33-.09.66-.09 1v1H4v2h2v1c0 .34.04.67.09 1H4v2h2.81c1.04 1.79 2.97 3 5.19 3s4.15-1.21 5.19-3H20v-2h-2.09c.05-.33.09-.66.09-1v-1h2v-2h-2v-1c0-.34-.04-.67-.09-1H20V8zm-6 8h-4v-2h4v2zm0-4h-4v-2h4v2z"/></svg>
+          Debug Log
+        </button>
+        <button id="debug-copy-error-btn" class="btn-secondary highlight-btn" title="Copy complete error diagnostic log with timestamps & trace">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+          Copy Error
+        </button>
+      </div>
+    </div>
+
+    <!-- Workflow Debug Trace Drawer -->
+    <div id="debug-trace-drawer" class="debug-drawer">
+      <div class="debug-drawer-header">
+        <span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px"><path d="M20 8h-2.81c-.45-.78-1.07-1.45-1.82-1.96L17 4.41 15.59 3l-2.17 2.17C13 5.06 12.51 5 12 5s-1 .06-1.41.17L8.41 3 7 4.41l1.62 1.63C7.88 6.55 7.26 7.22 6.81 8H4v2h2.09c-.05.33-.09.66-.09 1v1H4v2h2v1c0 .34.04.67.09 1H4v2h2.81c1.04 1.79 2.97 3 5.19 3s4.15-1.21 5.19-3H20v-2h-2.09c.05-.33.09-.66.09-1v-1h2v-2h-2v-1c0-.34-.04-.67-.09-1H20V8zm-6 8h-4v-2h4v2zm0-4h-4v-2h4v2z"/></svg>
+          Workflow Debug Log
+        </span>
+        <div class="debug-drawer-actions">
+          <button id="copy-trace-json-btn" class="btn-small">Copy JSON</button>
+          <button id="close-trace-drawer-btn" class="btn-small btn-cancel">&times;</button>
+        </div>
+      </div>
+      <pre id="debug-trace-content"
+        class="debug-trace-box">No workflow execution recorded yet. Run an agent action to inspect trace.</pre>
+    </div>
+
+  </main>
+
+  <script type="module" src="popup.js"></script>
+</body>
+
+</html>

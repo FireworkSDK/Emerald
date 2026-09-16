@@ -1,0 +1,91 @@
+{
+  "manifest_version": 3,
+  "name": "Emerald",
+  "version": "1.0",
+  "description": "Open-Source Task Automation Extension",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabs"  
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "content/dom-scanner.js",
+        "content/action-executor.js",
+        "lib/katex/katex.min.js",
+        "content/side-panel.js",
+        "content/content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "icons/icon128.png"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "commands": {
+    "toggle-hud": {
+      "suggested_key": {
+        "default": "Alt+1",
+        "windows": "Alt+1",
+        "mac": "Alt+1"
+      },
+      "description": "Toggle Emerald HUD"
+    },
+    "toggle-reasoning": {
+      "suggested_key": {
+        "default": "Alt+2",
+        "windows": "Alt+2",
+        "mac": "Alt+2"
+      },
+      "description": "Toggle reasoning drawer"
+    },
+    "solve-form": {
+      "suggested_key": {
+        "default": "Alt+3",
+        "windows": "Alt+3",
+        "mac": "Alt+3"
+      },
+      "description": "Solve form"
+    },
+    "toggle-settings": {
+      "suggested_key": {
+        "default": "Alt+4",
+        "windows": "Alt+4",
+        "mac": "Alt+4"
+      },
+      "description": "Open Emerald settings"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

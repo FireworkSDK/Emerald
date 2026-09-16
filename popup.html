@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emerald</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* Hallmark · component: popup-dashboard · genre: modern-minimal · theme: custom (utilitarian dark)
+     * states: default · hover · focus · active · disabled · loading · error · success
+     */
+
+    /* ── Tokens ── */
+    :root {
+      /* Color */
+      --color-paper:        oklch(14% 0.01 250);
+      --color-paper-2:      oklch(18% 0.01 250);
+      --color-paper-3:      oklch(22% 0.015 250);
+      --color-border:       oklch(28% 0.015 250);
+      --color-text:         oklch(88% 0.01 250);
+      --color-text-muted:   oklch(55% 0.015 250);
+      --color-accent:       oklch(70% 0.12 255);
+      --color-accent-dim:   oklch(30% 0.08 255);
+      --color-success:      oklch(65% 0.12 145);
+      --color-focus:        oklch(70% 0.12 255);
+
+      /* Typography */
+      --font-display: 'IBM Plex Mono', monospace;
+      --font-body:    'IBM Plex Sans', sans-serif;
+
+      /* Scale */
+      --text-xs:   10px;
+      --text-sm:   11px;
+      --text-base: 12px;
+      --text-md:   13px;
+
+      /* Space (4pt) */
+      --space-1: 4px;
+      --space-2: 8px;
+      --space-3: 12px;
+      --space-4: 16px;
+      --space-5: 20px;
+
+      /* Motion */
+      --dur-fast:   100ms;
+      --dur-base:   160ms;
+      --ease-out:   cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    /* ── Reset ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 380px;
+      background: var(--color-paper);
+      color: var(--color-text);
+      font-family: var(--font-body);
+      font-size: var(--text-base);
+      line-height: 1.5;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-paper-2);
+    }
+    .header-name {
+      font-family: var(--font-display);
+      font-size: var(--text-md);
+      font-weight: 500;
+      color: var(--color-text);
+      letter-spacing: 0.03em;
+    }
+    .header-label {
+      font-size: var(--text-xs);
+      color: var(--color-text-muted);
+      font-family: var(--font-display);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* ── Loading ── */
+    #loading {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-5) var(--space-4);
+      color: var(--color-text-muted);
+      font-family: var(--font-display);
+      font-size: var(--text-sm);
+    }
+    .dot-pulse {
+      display: flex;
+      gap: 3px;
+      align-items: center;
+    }
+    .dot-pulse span {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--color-text-muted);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    .dot-pulse span:nth-child(2) { animation-delay: 0.2s; }
+    .dot-pulse span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse {
+      0%, 80%, 100% { opacity: 0.3; }
+      40%           { opacity: 1; }
+    }
+
+    /* ── Dashboard ── */
+    #dashboard { display: none; }
+
+    /* ── Section ── */
+    .section {
+      padding: var(--space-3) var(--space-4);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .section:last-of-type { border-bottom: none; }
+
+    .section-label {
+      font-family: var(--font-display);
+      font-size: var(--text-xs);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-text-muted);
+      margin-bottom: var(--space-2);
+    }
+
+    /* ── Meta rows ── */
+    .meta-value {
+      font-size: var(--text-base);
+      color: var(--color-text);
+      word-break: break-all;
+    }
+    .meta-value.url {
+      font-family: var(--font-display);
+      font-size: var(--text-sm);
+      color: var(--color-accent);
+    }
+    .text-block {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+      background: var(--color-paper-2);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      padding: var(--space-2) var(--space-3);
+      max-height: 160px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+    .text-block::-webkit-scrollbar { width: 3px; }
+    .text-block::-webkit-scrollbar-track { background: transparent; }
+    .text-block::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
+
+    /* ── Count row ── */
+    .count-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: var(--space-2);
+    }
+    .count {
+      font-family: var(--font-display);
+      font-size: var(--text-xs);
+      color: var(--color-accent);
+    }
+
+    /* ── Chips ── */
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-1);
+    }
+    .chip {
+      font-size: var(--text-xs);
+      font-family: var(--font-display);
+      color: var(--color-text);
+      background: var(--color-paper-3);
+      border: 1px solid var(--color-border);
+      border-radius: 3px;
+      padding: 2px var(--space-2);
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .empty {
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+      font-style: italic;
+    }
+
+    /* ── Input rows ── */
+    .input-item {
+      display: flex;
+      align-items: baseline;
+      gap: var(--space-2);
+      padding: var(--space-1) 0;
+      border-bottom: 1px solid var(--color-border);
+      font-size: var(--text-sm);
+    }
+    .input-item:last-child { border-bottom: none; }
+    .input-type {
+      font-family: var(--font-display);
+      font-size: var(--text-xs);
+      color: var(--color-accent);
+      min-width: 36px;
+      flex-shrink: 0;
+    }
+    .input-name {
+      color: var(--color-text);
+      font-weight: 500;
+    }
+    .input-placeholder {
+      color: var(--color-text-muted);
+      font-size: var(--text-xs);
+    }
+
+    /* ── Copy button ── */
+    .footer-bar {
+      padding: var(--space-2) var(--space-4) var(--space-3);
+      border-top: 1px solid var(--color-border);
+    }
+    #copy-btn {
+      width: 100%;
+      padding: var(--space-2) var(--space-3);
+      background: var(--color-paper-3);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      color: var(--color-text);
+      font-family: var(--font-display);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      cursor: pointer;
+      text-align: center;
+      transition: background var(--dur-fast) var(--ease-out),
+                  border-color var(--dur-fast) var(--ease-out),
+                  color var(--dur-fast) var(--ease-out);
+    }
+    #copy-btn:hover       { background: var(--color-paper-2); border-color: var(--color-accent); color: var(--color-accent); }
+    #copy-btn:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+    #copy-btn:active      { background: var(--color-accent-dim); }
+    #copy-btn.success     { border-color: var(--color-success); color: var(--color-success); }
+    #copy-btn:disabled    { opacity: 0.4; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <span class="header-name">emerald</span>
+  <span class="header-label">page inspector</span>
+</div>
+
+<div id="loading">
+  <div class="dot-pulse">
+    <span></span><span></span><span></span>
+  </div>
+  scanning page
+</div>
+
+<div id="dashboard">
+
+  <div class="section">
+    <div class="section-label">Title</div>
+    <div class="meta-value" id="pg-title"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">URL</div>
+    <div class="meta-value url" id="pg-url"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">Body text</div>
+    <div class="text-block" id="pg-text"></div>
+  </div>
+
+  <div class="section">
+    <div class="count-row">
+      <div class="section-label" style="margin-bottom:0">Buttons</div>
+      <span class="count" id="btn-count"></span>
+    </div>
+    <div class="chips" id="btn-list"></div>
+  </div>
+
+  <div class="section">
+    <div class="count-row">
+      <div class="section-label" style="margin-bottom:0">Inputs</div>
+      <span class="count" id="inp-count"></span>
+    </div>
+    <div id="inp-list"></div>
+  </div>
+
+  <div class="footer-bar">
+    <button id="copy-btn">copy as json</button>
+  </div>
+
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>
