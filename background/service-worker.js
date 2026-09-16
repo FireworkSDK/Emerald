@@ -24,6 +24,16 @@ function isConsequentialAction(action, elementMap = []) {
       const text = (targetEl.text || targetEl.aria_label || targetEl.label || '').toLowerCase();
       if (/submit|kirim|pay|buy|purchase|send|delete|confirm|remove|selesai|finish/i.test(text)) return true;
     }
+
+    function isMetadataField(element) {
+      const text = [
+        element?.label,
+        element?.question,
+        element?.placeholder,
+        element?.name
+      ].filter(Boolean).join(' ').toLowerCase();
+      return /\b(name|nama|age|usia|class|kelas|email|e-mail|phone|telepon|student id|nisn?|address|alamat)\b/i.test(text);
+    }
   }
   return false;
 }
@@ -132,14 +142,15 @@ function buildReasoningDetails(pageData, aiResponse) {
 
   return Array.from(groups.values()).map((group, index) => {
     const first = group[0];
+    const questionSet = pageData?.question_sets?.[index];
     const selected = group
       .map(element => ({ element, action: actionById.get(element.id) }))
       .filter(item => item.action && ['check', 'select', 'fill'].includes(item.action.type));
 
     return {
       number: index + 1,
-      question: first.question || first.label || `Field ${index + 1}`,
-      options: group.map(element => ({
+      question: questionSet?.question || first.question || first.label || `Field ${index + 1}`,
+      options: questionSet?.options || group.map(element => ({
         id: element.id,
         label: element.label || element.placeholder || element.value || element.name || element.id,
         type: element.type
@@ -151,6 +162,7 @@ function buildReasoningDetails(pageData, aiResponse) {
         action: action.type
       })),
       reasoning: reasoningForQuestion(index + 1),
+      image: questionSet?.image || null,
       usedModel
     };
   });
@@ -210,7 +222,9 @@ async function handleAgentRun({ requestText = '', mode = 'FILL', askBeforeImport
       'gemini_api_keys',
       'use_mock_ai',
       'custom_ai_instruction',
-      'key_stats_map'
+      'key_stats_map',
+      'allow_model_downgrade',
+      'preferred_gemini_model'
     ]);
 
     apiKeys = parseApiKeys(HARDCODED_GEMINI_API_KEY, settings);
@@ -230,12 +244,22 @@ async function handleAgentRun({ requestText = '', mode = 'FILL', askBeforeImport
         requestText,
         mode,
         screenshotBase64,
-        effectiveCustomInstruction
+        effectiveCustomInstruction,
+        {
+          allowDowngrade: settings.allow_model_downgrade !== false,
+          preferredModel: settings.preferred_gemini_model || 'gemini-3.1-flash'
+        }
       );
     }
 
     // 5. Validate mode constraints and safety confirmation rules
-    const pendingActions = aiResponse.actions || [];
+    const explicitMetadataRequest = `${requestText} ${customInstruction}`.trim();
+    const pendingActions = (aiResponse.actions || []).filter(action => {
+      const target = pageData.elements.find(element => element.id === action.element_id);
+      if (!target || !isMetadataField(target)) return true;
+      return new RegExp(`\\b${(target.label || target.name || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(explicitMetadataRequest)
+        || /\b(name|nama|age|usia|class|kelas|email|phone|telepon|student id|nisn?|address|alamat)\b/i.test(explicitMetadataRequest);
+    });
     for (const act of pendingActions) {
       const isConsequential = isConsequentialAction(act, pageData.elements);
       if (isConsequential) {

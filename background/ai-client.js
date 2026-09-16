@@ -21,12 +21,14 @@ QUESTION & OPTION MAPPING:
 4. Match each question prompt from "body_text" or "question" to its corresponding set of option elements, determine the correct choice, and generate an action for that option's "element_id".
 5. Treat "question_sets" as the authoritative mapping between each question and its controls. Do not merge adjacent questions or infer an option from a different question.
 6. Ignore any text that describes the Emerald HUD, its buttons, status, or reasoning panel; it is not webpage content.
+7. Never output placeholders such as "answerArr[]", "Options", or "answerArr". Use the actual option text and element IDs only.
 
 MANDATORY FORM COMPLETION RULE:
 1. In FILL or ASSIST mode, you MUST generate "check", "fill", or "select" actions for EVERY question or input field found in "elements".
 2. DO NOT return an incomplete actions array! If the page has questions numbered from 1 to 30, you MUST generate actions for ALL 30 questions from top to bottom (typically 30 to 50 actions total). DO NOT STOP after question 5!
 3. For checkbox questions, select every option that is correct. There is no default limit on the number of selected options. Follow an explicit selection count or limit only when the user states one in their prompt.
-4. ALWAYS fill every text input and textarea — NEVER leave a text field blank. Even if you are unsure, provide the most plausible answer.
+4. Fill every academic or explicitly requested text input and textarea. Leave metadata-only fields blank unless requested.
+5. Do not fill metadata-only fields (name, age, class, email, phone, student ID, address) unless the user explicitly requests them or provides their values.
 
 RULES FOR ACTIONS:
 1. You MUST evaluate and generate actions for ALL questions present on the page from top to bottom in a single pass.
@@ -55,8 +57,8 @@ RULES FOR ACTIONS:
 4. Output MUST be strictly valid JSON matching this schema:
 {
   "status": "actions" | "answer" | "confirmation" | "clarification" | "finished",
-  "reasoning": "Full reasoning organized by question. Start each question with its number, quote the question, list the relevant options, identify the answer, and explain the calculation or evidence. Do not claim a question was answered unless an action was generated for it. You MAY use KaTeX math notation here: wrap inline math in $...$ and display math in $$...$$. Example: The answer is $x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$",
-  "message": "Clear summary of your reasoning and what actions were performed",
+  "reasoning": "Full reasoning organized by question. Start each question with its number, quote the question, list the relevant options, identify the answer, and explain the calculation or evidence. Do not claim a question was answered unless an action was generated for it. Use KaTeX for mathematical notation: inline formulas must use $...$ and display formulas must use $$...$$. Never emit raw LaTeX delimiters, JavaScript arrays, or placeholder names.",
+  "message": "Clear summary of the reasoning and actions actually generated. Do not repeat the full reasoning or emit placeholder arrays.",
   "actions": [
     {
       "type": "fill" | "select" | "check" | "uncheck" | "click" | "scroll",
@@ -211,6 +213,8 @@ RULES FOR ACTIONS:
    */
   async fetchAvailableModels(apiKey) {
     const defaultPriority = [
+      'gemini-3.1-flash',
+      'gemini-3.1-flash-lite',
       'gemini-2.5-flash',
       'gemini-2.5-flash-lite',
       'gemini-2.0-flash',
@@ -299,7 +303,7 @@ RULES FOR ACTIONS:
    * Calls Google Gemini API with multi-model failover and multi-key failover.
    * If a model hits a 429 quota limit, tries other flash models on the same key before rotating keys.
    */
-  async callGeminiAPI(apiKeysInput, pageData, userRequest, mode, screenshotBase64 = null, customInstruction = '') {
+  async callGeminiAPI(apiKeysInput, pageData, userRequest, mode, screenshotBase64 = null, customInstruction = '', modelOptions = {}) {
     const rawKeys = Array.isArray(apiKeysInput) ? apiKeysInput : (apiKeysInput ? [apiKeysInput] : []);
     const keys = rawKeys.map(k => k.trim()).filter(k => k.length > 0);
 
@@ -317,16 +321,18 @@ RULES FOR ACTIONS:
       label: e.label || e.text || null,
       question: e.question || null,
       value: e.value || null,
-      options: e.options || undefined
+      options: e.options || undefined,
+      image: e.image || undefined
     }));
 
     let effectiveInstruction = (userRequest && userRequest.trim())
-      ? `${userRequest.trim()} Accurately fill all text form fields and select every checkbox option that is correct. Apply any checkbox count or limit only if explicitly stated in this instruction.`
-      : 'Solve and fill out ALL questions, inputs, and choices on this entire form accurately from Question 1 to the end. For checkbox questions, select every option that is correct with no default selection limit. Fill in all form inputs (name, class, text fields).';
+      ? `${userRequest.trim()} Accurately solve the requested questions and select every checkbox option that is correct. Apply any checkbox count or limit only if explicitly stated.`
+      : 'Solve all academic questions and explicitly requested fields from Question 1 to the end. Select every checkbox option that is correct with no default selection limit.';
 
     if (customInstruction && customInstruction.trim()) {
       effectiveInstruction += `\n[User Custom Context / Rule]: ${customInstruction.trim()}`;
     }
+    effectiveInstruction += '\nDo not fill metadata-only fields such as name, age, class, email, phone, student ID, or address unless the user explicitly requests those fields or provides values for them.';
 
     // Assemble multimodal parts (image + text JSON)
     const userParts = [];
@@ -380,15 +386,21 @@ RULES FOR ACTIONS:
 
       // Dynamically query available models for this key (filtered and sorted to high-quota Flash first)
       const dynamicModels = await this.fetchAvailableModels(apiKey);
-      const modelsToUse = (dynamicModels && dynamicModels.length > 0)
+      const preferredModel = modelOptions.preferredModel || 'gemini-3.1-flash';
+      const availableModels = (dynamicModels && dynamicModels.length > 0)
         ? dynamicModels
-        : ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+        : [preferredModel];
+      const modelsToUse = [
+        preferredModel,
+        ...availableModels.filter(model => model !== preferredModel)
+      ];
 
       const endpointsToTry = modelsToUse.map(model =>
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`
       );
 
       let allModelsRateLimited = true;
+      let stopModelFallback = false;
 
       for (const endpoint of endpointsToTry) {
         const modelTag = endpoint.match(/models\/([^:]+):/)?.[1] || 'gemini';
@@ -459,11 +471,19 @@ RULES FOR ACTIONS:
                   continue; // retry same endpoint in the while loop
                 }
 
+                if (modelOptions.allowDowngrade === false) {
+                  console.warn(`[Loki AI] Model downgrade disabled; stopping after ${modelTag}.`);
+                  stopModelFallback = true;
+                  break;
+                }
                 // If retry delay is long or already retried, try NEXT model on SAME key
                 console.warn(`[Loki AI] Model ${modelTag} quota exhausted on Key ${masked}. Trying next Flash model on same key...`);
                 break;
               } else {
                 allModelsRateLimited = false;
+                if (modelOptions.allowDowngrade === false) {
+                  stopModelFallback = true;
+                }
                 break;
               }
             }
@@ -471,9 +491,14 @@ RULES FOR ACTIONS:
             lastError = err.name === 'AbortError' ? `[${modelTag}] Timed out` : err.message;
             console.warn(`[Loki AI] Key ${masked} model ${modelTag} error:`, err);
             allModelsRateLimited = false;
+            if (modelOptions.allowDowngrade === false) {
+              stopModelFallback = true;
+            }
             break;
           }
+          if (stopModelFallback) break;
         }
+        if (stopModelFallback) break;
       }
 
       // If all models failed for this key, mark key and rotate to next key

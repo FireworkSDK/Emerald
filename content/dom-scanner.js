@@ -401,7 +401,12 @@
           });
         });
       groupedQuestions.forEach((options, question) => {
-        questionSets.push({ question, options });
+        const firstElement = window.__lokiElementMap.get(options[0]?.id);
+        const questionRoot = firstElement?.closest(
+          '.Qr7Oae, [role="listitem"], .freebirdFormviewerComponentsQuestionBaseRoot, .geor2, fieldset'
+        );
+        const image = questionRoot?.querySelector('img[src]')?.src || null;
+        questionSets.push({ question, options, image });
       });
 
       return {

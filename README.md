@@ -1,5 +1,8 @@
 # Emerald
 
+[![Emerald icon](https://raw.githubusercontent.com/FireworkSDK/Emerald/main/icons/icon128.png)](https://github.com/FireworkSDK/Emerald)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 Emerald is an open-source Manifest V3 browser extension for AI-assisted Google
 Forms and webpage automation. It scans the current page, builds a structured
 map of questions and controls, asks Google Gemini to reason about the page, and
@@ -7,6 +10,8 @@ applies validated actions such as filling fields and selecting answers.
 
 Emerald supports Chromium-based browsers, including Google Chrome and
 Microsoft Edge.
+
+Emerald is released under the [MIT License](LICENSE).
 
 ## Features
 

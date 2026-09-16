@@ -43,6 +43,10 @@
   }
 
   const shadow = host.attachShadow({ mode: 'open' });
+  const katexStyles = document.createElement('link');
+  katexStyles.rel = 'stylesheet';
+  katexStyles.href = chrome.runtime.getURL('lib/katex/katex.min.css');
+  shadow.appendChild(katexStyles);
 
   // Stylesheet - Neobrutalism Design System
   const style = document.createElement('style');
@@ -368,6 +372,7 @@
       gap: 5px;
       color: var(--text-primary);
       font-family: var(--font-mono);
+      overflow: hidden;
       font-size: 10.5px;
     }
 
@@ -871,6 +876,8 @@
       overflow-y: auto;
       overflow-x: hidden;
       max-height: 220px;
+      min-width: 0;
+      overflow-wrap: anywhere;
       white-space: pre-wrap;
       font-family: var(--font-mono);
       background: var(--bg-card);
@@ -911,6 +918,59 @@
       padding-top: 6px;
       border-top: 1px solid rgba(11, 61, 32, 0.45);
       font-size: 10px;
+      overflow-wrap: anywhere;
+    }
+
+    .reasoning-question-image {
+      display: block;
+      width: 100%;
+      max-height: 180px;
+      object-fit: contain;
+      margin: 6px 0;
+      background: #fff;
+      border: 1px solid rgba(11, 61, 32, 0.45);
+    }
+
+    .reasoning-view-btn {
+      margin-top: 6px;
+      padding: 4px 7px;
+      border: 1px solid var(--bg-dark);
+      background: var(--yellow);
+      color: var(--bg-dark);
+      font: 900 10px var(--font-mono);
+      cursor: pointer;
+    }
+
+    .question-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.7);
+    }
+
+    .question-modal.open { display: flex; }
+    .question-modal-card {
+      width: min(520px, 100%);
+      max-height: 90%;
+      overflow: auto;
+      padding: 12px;
+      background: var(--bg-light);
+      color: var(--bg-dark);
+      border: var(--neo-border-thick);
+      box-shadow: var(--neo-shadow-lg);
+    }
+
+    .question-modal-close {
+      float: right;
+      border: 1px solid var(--bg-dark);
+      background: var(--accent);
+      color: var(--bg-dark);
+      cursor: pointer;
+      font-weight: 900;
     }
 
     /* Model Dashboard Card (Alt+0) */
@@ -1080,6 +1140,13 @@
           </span>
           <span class="name">EMERALD - <span id="page-title">...</span></span>
         </div>
+
+        <div class="question-modal" id="question-modal" role="dialog" aria-modal="true" aria-label="Question details">
+          <div class="question-modal-card">
+            <button class="question-modal-close" id="question-modal-close" type="button">Close</button>
+            <div id="question-modal-content"></div>
+          </div>
+        </div>
         <div class="header-btns">
           <span class="ai-status" id="ai-status" title="AI idle" aria-label="AI idle"></span>
           <button class="hud-icon-btn" id="btn-help" title="Keyboard shortcuts">?</button>
@@ -1111,6 +1178,10 @@
           <textarea id="hud-api-keys" placeholder="Gemini API keys, one per line"></textarea>
           <label><input type="checkbox" id="hud-use-mock"> Use Mock AI Engine</label>
           <label><input type="checkbox" id="hud-disable-popup"> Disable notification toasts</label>
+          <label><input type="checkbox" id="hud-allow-downgrade" checked> Downgrade to older Gemini models when needed</label>
+          <label class="utility-field-label">Preferred Gemini model
+            <input type="text" id="hud-preferred-model" placeholder="gemini-3.1-flash">
+          </label>
           <button class="btn-action-tool" id="btn-save-settings">Save Settings</button>
         </div>
 
@@ -1278,21 +1349,32 @@
     if (!reasoningContent) return;
     const detailModel = Array.isArray(details) && details.length ? details[0].usedModel : '';
     const modelLabel = usedModel || detailModel || 'Model unavailable';
+    const cleanFallback = String(fallbackReasoning || '')
+      .replace(/answerArr\s*\[\s*\]/gi, '')
+      .replace(/\bOptions?\s*answerArr\s*\[\s*\]/gi, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
     const summary = `<div class="reasoning-summary"><strong>Answered with ${escapeReasoningText(modelLabel)}</strong>${
-      fallbackReasoning ? `<br><br><strong>AI full reasoning</strong><br>${escapeReasoningText(fallbackReasoning).replace(/\n/g, '<br>')}` : ''
+      cleanFallback ? `<br><br><strong>AI full reasoning</strong><br>${escapeReasoningText(cleanFallback).replace(/\n/g, '<br>')}` : ''
     }</div>`;
-    const cards = (Array.isArray(details) ? details : []).map(item => {
+    const normalizedDetails = Array.isArray(details) ? details : [];
+    const cards = normalizedDetails.map((item, itemIndex) => {
       const options = (item.options || [])
         .map(option => `<div class="reasoning-option">• ${escapeReasoningText(option.label)}</div>`)
         .join('');
       const answers = (item.answer || []).length
         ? item.answer.map(answer => `<div class="reasoning-answer">✓ ${escapeReasoningText(answer.label)}${answer.value ? `: ${escapeReasoningText(answer.value)}` : ''}</div>`).join('')
         : '<div class="reasoning-answer">No action selected</div>';
+      const image = item.image
+        ? `<img class="reasoning-question-image" src="${escapeReasoningText(item.image)}" alt="Question ${item.number} image">`
+        : '';
       return `<article class="reasoning-question">
         <div class="reasoning-question-title">Question ${item.number}: ${escapeReasoningText(item.question)}</div>
+        ${image}
         <div class="reasoning-question-section"><strong>Options</strong>${options || '<div class="reasoning-option">No options detected</div>'}</div>
         <div class="reasoning-question-section"><strong>Answer</strong>${answers}</div>
-        <div class="reasoning-explanation"><strong>AI reasoning</strong><br>${escapeReasoningText(item.reasoning || fallbackReasoning || 'No explanation provided.').replace(/\n/g, '<br>')}</div>
+        <div class="reasoning-explanation"><strong>AI reasoning</strong><br>${escapeReasoningText(item.reasoning || cleanFallback || 'No explanation provided.').replace(/\n/g, '<br>')}</div>
+        <button class="reasoning-view-btn" type="button" data-question-index="${itemIndex}">View question details</button>
       </article>`;
     }).join('');
 
@@ -1300,6 +1382,25 @@
     if (katexReady && typeof window.katex !== 'undefined') {
       reasoningContent.querySelectorAll('.reasoning-summary, .reasoning-explanation').forEach(renderKatex);
     }
+    reasoningContent.querySelectorAll('.reasoning-view-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const item = normalizedDetails[Number(button.dataset.questionIndex)];
+        if (!item || !questionModalContent || !questionModal) return;
+        questionModalContent.innerHTML = `
+          <h3>Question ${item.number}</h3>
+          <p>${escapeReasoningText(item.question)}</p>
+          ${item.image ? `<img class="reasoning-question-image" src="${escapeReasoningText(item.image)}" alt="Question image">` : ''}
+          <h4>Options</h4>
+          ${(item.options || []).map(option => `<div>• ${escapeReasoningText(option.label)}</div>`).join('') || '<div>No options detected</div>'}
+          <h4>Answer</h4>
+          ${(item.answer || []).map(answer => `<div class="reasoning-answer">✓ ${escapeReasoningText(answer.label)}${answer.value ? `: ${escapeReasoningText(answer.value)}` : ''}</div>`).join('') || '<div>No action selected</div>'}
+          <h4>AI reasoning</h4>
+          <div>${escapeReasoningText(item.reasoning || cleanFallback || 'No explanation provided.').replace(/\n/g, '<br>')}</div>`;
+        questionModal.classList.add('open');
+        const mathBlocks = questionModalContent.querySelectorAll('div:last-child');
+        if (katexReady && typeof window.katex !== 'undefined') mathBlocks.forEach(renderKatex);
+      });
+    });
   }
 
   // References
@@ -1316,11 +1417,16 @@
   const hudApiKeys = shadow.getElementById('hud-api-keys');
   const hudUseMock = shadow.getElementById('hud-use-mock');
   const hudDisablePopup = shadow.getElementById('hud-disable-popup');
+  const hudAllowDowngrade = shadow.getElementById('hud-allow-downgrade');
+  const hudPreferredModel = shadow.getElementById('hud-preferred-model');
   const pageTitleEl = shadow.getElementById('page-title');
   const solveBtn = shadow.getElementById('btn-solve-now');
   const statusDot = shadow.getElementById('status-dot');
   const statusText = shadow.getElementById('status-text');
   const reasoningContent = shadow.getElementById('reasoning-content');
+  const questionModal = shadow.getElementById('question-modal');
+  const questionModalContent = shadow.getElementById('question-modal-content');
+  const questionModalClose = shadow.getElementById('question-modal-close');
   const hudCustomPrompt = shadow.getElementById('hud-custom-prompt');
   const hudTokenUsed = shadow.getElementById('hud-token-used');
   const hudTokenRem = shadow.getElementById('hud-token-rem');
@@ -1445,6 +1551,8 @@
       'gemini_api_key',
       'use_mock_ai',
       'disable_popup'
+      ,'allow_model_downgrade'
+      ,'preferred_gemini_model'
     ]);
     if (hudApiKeys) {
       hudApiKeys.value = Array.isArray(settings.gemini_api_keys)
@@ -1455,6 +1563,8 @@
     if (hudUseMock) hudUseMock.checked = settings.use_mock_ai === true;
     notificationsEnabled = settings.disable_popup !== true;
     if (hudDisablePopup) hudDisablePopup.checked = !notificationsEnabled;
+    if (hudAllowDowngrade) hudAllowDowngrade.checked = settings.allow_model_downgrade !== false;
+    if (hudPreferredModel) hudPreferredModel.value = settings.preferred_gemini_model || 'gemini-3.1-flash';
   }
 
   function addModelKeyInput(value = '') {
@@ -1705,6 +1815,8 @@
         gemini_api_keys: keys,
         use_mock_ai: hudUseMock?.checked === true,
         disable_popup: hudDisablePopup?.checked === true
+        ,allow_model_downgrade: hudAllowDowngrade?.checked !== false
+        ,preferred_gemini_model: hudPreferredModel?.value.trim() || 'gemini-3.1-flash'
       });
       notificationsEnabled = hudDisablePopup?.checked !== true;
       if (!notificationsEnabled) {
@@ -1715,6 +1827,12 @@
     });
   }
   if (solveBtn) solveBtn.addEventListener('click', runAutoSolve);
+  if (questionModalClose) questionModalClose.addEventListener('click', () => questionModal?.classList.remove('open'));
+  if (questionModal) {
+    questionModal.addEventListener('click', event => {
+      if (event.target === questionModal) questionModal.classList.remove('open');
+    });
+  }
 
   // Inject & Run button in Prompt section
   const btnInjectSolve = shadow.getElementById('btn-inject-solve');
