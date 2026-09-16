@@ -897,6 +897,18 @@
       border-radius: var(--neo-radius-sm);
     }
 
+    .reasoning-full {
+      margin-top: 8px;
+      padding-top: 7px;
+      border-top: 1px solid rgba(166, 226, 46, 0.35);
+    }
+
+    .reasoning-full summary {
+      cursor: pointer;
+      color: var(--yellow);
+      font-weight: 900;
+    }
+
     .reasoning-question {
       padding: 8px;
       margin-bottom: 8px;
@@ -1348,18 +1360,25 @@
       .replace(/'/g, '&#39;');
   }
 
+  function cleanReasoningText(value) {
+    return String(value ?? '')
+      .replace(/```(?:json|text|markdown)?/gi, '')
+      .replace(/```/g, '')
+      .replace(/\banswerArr\s*\[\s*\]\b/gi, '')
+      .replace(/^\s*options\s*$/gim, '')
+      .replace(/\n[ \t]*\n[ \t]*\n+/g, '\n\n')
+      .trim();
+  }
+
   function renderReasoningDetails(details, fallbackReasoning, usedModel = '') {
     if (!reasoningContent) return;
     const detailModel = Array.isArray(details) && details.length ? details[0].usedModel : '';
     const modelLabel = usedModel || detailModel || 'Model unavailable';
-    const cleanFallback = String(fallbackReasoning || '')
-      .replace(/answerArr\s*\[\s*\]/gi, '')
-      .replace(/\bOptions?\s*answerArr\s*\[\s*\]/gi, '')
-      .replace(/\n{3,}/g, '\n\n')
-      .trim();
-    const summary = `<div class="reasoning-summary"><strong>Answered with ${escapeReasoningText(modelLabel)}</strong>${
-      cleanFallback ? `<br><br><strong>AI full reasoning</strong><br>${escapeReasoningText(cleanFallback).replace(/\n/g, '<br>')}` : ''
-    }</div>`;
+    const cleanFallback = cleanReasoningText(fallbackReasoning);
+    const fullReasoning = cleanFallback
+      ? `<details class="reasoning-full"><summary>AI full reasoning</summary><div class="reasoning-full-text">${escapeReasoningText(cleanFallback).replace(/\n/g, '<br>')}</div></details>`
+      : '';
+    const summary = `<div class="reasoning-summary"><strong>Answered with ${escapeReasoningText(modelLabel)}</strong>${fullReasoning}</div>`;
     const normalizedDetails = Array.isArray(details) ? details : [];
     const cards = normalizedDetails.map((item, itemIndex) => {
       const options = (item.options || [])
@@ -1376,14 +1395,14 @@
         ${image}
         <div class="reasoning-question-section"><strong>Options</strong>${options || '<div class="reasoning-option">No options detected</div>'}</div>
         <div class="reasoning-question-section"><strong>Answer</strong>${answers}</div>
-        <div class="reasoning-explanation"><strong>AI reasoning</strong><br>${escapeReasoningText(item.reasoning || cleanFallback || 'No explanation provided.').replace(/\n/g, '<br>')}</div>
+        <div class="reasoning-explanation"><strong>AI reasoning</strong><br>${escapeReasoningText(cleanReasoningText(item.reasoning) || 'No explanation provided.').replace(/\n/g, '<br>')}</div>
         <button class="reasoning-view-btn" type="button" data-question-index="${itemIndex}">View question details</button>
       </article>`;
     }).join('');
 
     reasoningContent.innerHTML = summary + cards;
     if (katexReady && typeof window.katex !== 'undefined') {
-      reasoningContent.querySelectorAll('.reasoning-summary, .reasoning-explanation').forEach(renderKatex);
+      reasoningContent.querySelectorAll('.reasoning-full-text, .reasoning-explanation').forEach(renderKatex);
     }
     reasoningContent.querySelectorAll('.reasoning-view-btn').forEach(button => {
       button.addEventListener('click', () => {
