@@ -172,6 +172,9 @@ notifications. The `?` button opens the shortcut reference.
 
 ## Permissions and privacy
 
+Read the full [Privacy Policy](PRIVACY.md) and [Terms of Use](TERMS.md) for
+the extension’s data handling and usage conditions.
+
 Emerald requests broad page access because it must inspect and interact with
 the current webpage:
 
