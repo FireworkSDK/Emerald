@@ -3,10 +3,12 @@
 [![Emerald icon](https://raw.githubusercontent.com/FireworkSDK/Emerald/main/icons/icon128.png)](https://github.com/FireworkSDK/Emerald)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-Emerald is an open-source Manifest V3 browser extension for AI-assisted Google
-Forms and webpage automation. It scans the current page, builds a structured
-map of questions and controls, asks Google Gemini to reason about the page, and
-applies validated actions such as filling fields and selecting answers.
+Emerald is an open-source Manifest V3 browser extension for AI-assisted
+webpage and form automation. It works with Google Forms, custom web apps,
+surveys, quizzes, registration pages, dashboards, and ordinary HTML forms. It
+scans the current page, builds a structured map of questions and controls,
+asks Google Gemini to reason about the page, and applies validated actions
+such as filling fields, selecting answers, and navigating between steps.
 
 Emerald supports Chromium-based browsers, including Google Chrome and
 Microsoft Edge.
@@ -22,7 +24,8 @@ Emerald is released under the [MIT License](LICENSE).
 - **Checkbox handling**: selects every verified-correct checkbox option unless
   the user explicitly requests a limit.
 - **Framework-aware actions**: dispatches input, change, focus, keyboard, and
-  blur events to work with Google Forms and common frontend frameworks.
+  blur events to work with Google Forms, custom web apps, and common frontend
+  frameworks.
 - **Three operating modes**:
   - **Suggest**: analyze the page without changing it.
   - **Fill**: fill fields and select answers without submitting the form.
@@ -131,7 +134,8 @@ box or use **Inject & Run** to run the instruction.
 5. Open **Reasoning** to review the model, questions, options, answers, and
    explanations.
 
-Emerald fills fields and selects answers but does not submit a form in
+Emerald fills fields, selects answers, and can click safe navigation controls
+such as **Next**, **Continue**, or **Back**. It does not submit a form in
 **Fill** mode. Do not refresh or navigate away while a solve operation is
 running.
 
