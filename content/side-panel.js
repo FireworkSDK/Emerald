@@ -1303,6 +1303,7 @@
   // Renders KaTeX math inside an element: $$...$$ (display) then $...$ (inline)
   function renderKatex(el) {
     if (!el) return;
+    if (el.dataset.katexRendered === 'true') return;
     const raw = el.textContent || '';
     if (!raw.trim()) return;
     if (!katexReady || typeof window.katex === 'undefined') {
@@ -1313,6 +1314,7 @@
 
     // Escape HTML then replace math regions
     let html = raw
+      .replace(/\r?\n/g, '__EMERALD_LINE_BREAK__')
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
@@ -1332,8 +1334,9 @@
     });
 
     // Newlines to line breaks (outside math regions)
-    html = html.replace(/\n/g, '<br>');
+    html = html.replace(/__EMERALD_LINE_BREAK__/g, '<br>');
     el.innerHTML = html;
+    el.dataset.katexRendered = 'true';
   }
 
   function escapeReasoningText(value) {

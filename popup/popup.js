@@ -449,7 +449,7 @@ async function copyAllErrorLogs() {
     const errorReport = {
       timestamp: new Date().toISOString(),
       report_title: 'Emerald Diagnostic Error & Execution Log',
-      extension_version: '2.0',
+      extension_version: chrome.runtime.getManifest().version,
       ui_history_log: historyItems,
       latest_error: data.latest_error_log || null,
       workflow_trace: data.latest_workflow_trace || null,

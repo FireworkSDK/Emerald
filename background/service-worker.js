@@ -20,22 +20,25 @@ function isConsequentialAction(action, elementMap = []) {
   if (action.type === 'click') {
     const targetEl = elementMap.find(e => e.id === action.element_id);
     if (targetEl) {
-      if (targetEl.is_submit) return true;
       const text = (targetEl.text || targetEl.aria_label || targetEl.label || '').toLowerCase();
+      // Next/Continue navigation is safe in Fill/Assist mode; final submission
+      // and destructive or transactional buttons remain protected.
       if (/submit|kirim|pay|buy|purchase|send|delete|confirm|remove|selesai|finish/i.test(text)) return true;
+      if (targetEl.is_submit && !/next|continue|lanjut|berikut/i.test(text)) return true;
     }
 
-    function isMetadataField(element) {
-      const text = [
-        element?.label,
-        element?.question,
-        element?.placeholder,
-        element?.name
-      ].filter(Boolean).join(' ').toLowerCase();
-      return /\b(name|nama|age|usia|class|kelas|email|e-mail|phone|telepon|student id|nisn?|address|alamat)\b/i.test(text);
-    }
   }
   return false;
+}
+
+function isMetadataField(element) {
+  const text = [
+    element?.label,
+    element?.question,
+    element?.placeholder,
+    element?.name
+  ].filter(Boolean).join(' ').toLowerCase();
+  return /\b(name|nama|age|usia|class|kelas|email|e-mail|phone|telepon|student id|nisn?|address|alamat)\b/i.test(text);
 }
 
 function isRestrictedUrl(url) {
@@ -285,6 +288,7 @@ async function handleAgentRun({ requestText = '', mode = 'FILL', askBeforeImport
   // ALWAYS build and persist debug workflow trace with full AI reasoning
   const workflowTrace = {
     timestamp: new Date().toISOString(),
+    extension_version: chrome.runtime.getManifest().version,
     status: errorMsg ? 'error' : (consequentialActions.length > 0 ? 'confirmation_required' : 'completed'),
     error: errorMsg || null,
     input: {
@@ -446,6 +450,7 @@ async function handleAgentRun({ requestText = '', mode = 'FILL', askBeforeImport
   if (errorMsg) {
     storagePayload.latest_error_log = {
       timestamp: new Date().toISOString(),
+      extension_version: chrome.runtime.getManifest().version,
       error_message: errorMsg,
       page_title: pageData?.title || 'Unknown Webpage',
       page_url: pageData?.url || 'Unknown URL',
